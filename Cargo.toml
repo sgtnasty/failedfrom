@@ -1,0 +1,13 @@
+[package]
+name = "failedfrom"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive"] }
+flate2 = "1.1.10"
+maxminddb = "0.32.0"
+ratatui = "0.30.2"
+regex = "1.13.1"

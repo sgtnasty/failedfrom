@@ -1,0 +1,14 @@
+2026-10-28 08:00:00,100 fail2ban.server         [811]: INFO    Starting Fail2ban v1.1.0
+2026-10-28 08:00:01,200 fail2ban.actions        [811]: NOTICE  [sshd] Restore Ban 45.148.10.12
+2026-10-28 09:12:03,001 fail2ban.filter         [811]: INFO    [sshd] Found 218.92.0.34 - 2026-10-28 09:12:03
+2026-10-28 09:12:09,001 fail2ban.filter         [811]: INFO    [sshd] Found 218.92.0.34 - 2026-10-28 09:12:09
+2026-10-28 09:12:15,001 fail2ban.filter         [811]: INFO    [sshd] Found 218.92.0.34 - 2026-10-28 09:12:15
+2026-10-28 09:12:15,400 fail2ban.actions        [811]: NOTICE  [sshd] Ban 218.92.0.34
+2026-10-28 09:12:20,000 fail2ban.actions        [811]: NOTICE  [sshd] 218.92.0.34 already banned
+2026-10-28 10:01:00,001 fail2ban.filter         [811]: INFO    [nginx-http-auth] Found 185.220.101.4 - 2026-10-28 10:01:00
+2026-10-28 10:01:05,001 fail2ban.filter         [811]: INFO    [nginx-http-auth] Found 185.220.101.4 - 2026-10-28 10:01:05
+2026-10-28 10:01:05,500 fail2ban.actions        [811]: NOTICE  [nginx-http-auth] Ban 185.220.101.4
+2026-10-28 11:01:05,500 fail2ban.actions        [811]: NOTICE  [nginx-http-auth] Unban 185.220.101.4
+2026-10-28 12:00:00,001 fail2ban.filter         [811]: INFO    [sshd] Found 2a01:4f8:c0c:1234::1 - 2026-10-28 12:00:00
+2026-10-28 12:00:01,001 fail2ban.filter         [811]: INFO    [sshd] Found 192.168.1.50 - 2026-10-28 12:00:01
+2026-10-28 13:30:00,000 fail2ban.actions        [811]: NOTICE  [recidive] Ban 218.92.0.34
