@@ -11,20 +11,21 @@
 //! - [`ui`]: draws the state with ratatui.
 //!
 //! This file holds the command line, start-up checks, the key-handling
-//! event loop, and the non-interactive `--dump` output.
+//! event loop, and the non-interactive `--dump` and `--json` output.
 
 mod app;
 mod geo;
 mod logparse;
 mod ui;
 
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write};
 use std::path::PathBuf;
 
 use anyhow::{Result, bail};
 use clap::Parser;
 use ratatui::DefaultTerminal;
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
+use serde::Serialize;
 
 use app::{App, Config};
 use geo::Geo;
@@ -53,8 +54,13 @@ struct Cli {
     dry_run: bool,
 
     /// Print the country and IP tables to stdout instead of starting the UI.
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with = "json")]
     dump: bool,
+
+    /// Print all data (totals, countries, and every IP with its per-jail
+    /// ban state) as JSON to stdout instead of starting the UI.
+    #[arg(short, long)]
+    json: bool,
 }
 
 /// Entry point: parse arguments, load the data, then either print it
@@ -80,6 +86,10 @@ fn main() -> Result<()> {
 
     if cli.dump {
         dump(&app);
+        return Ok(());
+    }
+    if cli.json {
+        dump_json(&app)?;
         return Ok(());
     }
 
@@ -193,5 +203,104 @@ fn dump(app: &App) {
             r.record.last_seen,
             r.record.banned_jails().join(",")
         );
+    }
+}
+
+/// Top-level `--json` document.
+#[derive(Serialize)]
+struct JsonDump<'a> {
+    /// Path of the GeoIP database used, or `null` if none was found.
+    geoip: Option<String>,
+    /// Log files that were read.
+    logs: Vec<String>,
+    /// Totals over every IP (the "All countries" row).
+    totals: JsonCounts,
+    /// Per-country totals, sorted like the country pane.
+    countries: Vec<JsonCountry<'a>>,
+    /// Every IP, sorted like the IP pane.
+    ips: Vec<JsonIp<'a>>,
+}
+
+#[derive(Serialize)]
+struct JsonCounts {
+    fails: u32,
+    bans: u32,
+    ips: u32,
+    banned_now: u32,
+}
+
+#[derive(Serialize)]
+struct JsonCountry<'a> {
+    code: &'a str,
+    name: &'a str,
+    #[serde(flatten)]
+    counts: JsonCounts,
+}
+
+#[derive(Serialize)]
+struct JsonIp<'a> {
+    ip: String,
+    country_code: &'a str,
+    country_name: &'a str,
+    fails: u32,
+    bans: u32,
+    last_seen: &'a str,
+    banned: bool,
+    /// Jail name -> currently banned in that jail.
+    jails: &'a std::collections::BTreeMap<String, bool>,
+}
+
+/// Print everything the UI knows as a single pretty-printed JSON document.
+fn dump_json(app: &App) -> Result<()> {
+    let counts = |c: &app::CountryRow| JsonCounts {
+        fails: c.fails,
+        bans: c.bans,
+        ips: c.ips,
+        banned_now: c.banned_now,
+    };
+    let doc = JsonDump {
+        geoip: app.geo.source.as_ref().map(|p| p.display().to_string()),
+        logs: app
+            .config
+            .logs
+            .iter()
+            .map(|p| p.display().to_string())
+            .collect(),
+        // Index 0 is always the "All countries" row.
+        totals: counts(&app.countries[0]),
+        countries: app
+            .countries
+            .iter()
+            .filter_map(|c| {
+                c.country.as_ref().map(|country| JsonCountry {
+                    code: &country.code,
+                    name: &country.name,
+                    counts: counts(c),
+                })
+            })
+            .collect(),
+        ips: app
+            .rows
+            .iter()
+            .map(|r| JsonIp {
+                ip: r.ip.to_string(),
+                country_code: &r.country.code,
+                country_name: &r.country.name,
+                fails: r.record.fails,
+                bans: r.record.bans,
+                last_seen: &r.record.last_seen,
+                banned: r.record.is_banned(),
+                jails: &r.record.jails,
+            })
+            .collect(),
+    };
+    let mut out = std::io::stdout().lock();
+    let written = serde_json::to_writer_pretty(&mut out, &doc)
+        .map_err(std::io::Error::from)
+        .and_then(|()| writeln!(out));
+    match written {
+        // The reader went away (e.g. piped into `head`): not an error.
+        Err(e) if e.kind() == ErrorKind::BrokenPipe => Ok(()),
+        r => Ok(r?),
     }
 }

@@ -33,6 +33,7 @@ sudo ./target/release/failedfrom
 | `--client PATH` | fail2ban client binary (default `fail2ban-client`) |
 | `-n, --dry-run` | Show the unban command instead of running it |
 | `-d, --dump` | Print the country and IP tables to stdout and exit |
+| `-j, --json` | Print all data (totals, countries, IPs with per-jail ban state) as JSON and exit |
 
 ### Keys
 
